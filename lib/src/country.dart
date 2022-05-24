@@ -1,6 +1,7 @@
 import 'package:country_picker/src/country_parser.dart';
 import 'package:country_picker/src/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:latinize/latinize.dart';
 
 import 'country_localizations.dart';
 
@@ -32,6 +33,10 @@ class Country {
   ///The country name in English
   final String name;
 
+  ///The country name in English in UPPERCASE
+  ///
+  final String nameUppercase;
+
   ///The country name localized
   late String? nameLocalized;
 
@@ -56,8 +61,7 @@ class Country {
   String get displayNameNoE164Cc => displayNameNoCountryCode;
 
   String? getTranslatedName(BuildContext context) {
-    return CountryLocalizations.of(context)
-        ?.countryName(countryCode: countryCode);
+    return CountryLocalizations.of(context)?.countryName(countryCode: countryCode);
   }
 
   Country({
@@ -73,7 +77,7 @@ class Country {
     required this.displayNameNoCountryCode,
     required this.e164Key,
     this.fullExampleWithPlusSign,
-  });
+  }) : nameUppercase = name.toUpperCase();
 
   Country.from({required Map<String, dynamic> json})
       : phoneCode = json['e164_cc'],
@@ -82,6 +86,7 @@ class Country {
         geographic = json['geographic'],
         level = json['level'],
         name = json['name'],
+        nameUppercase = json['name'].toString().toUpperCase(),
         example = json['example'],
         displayName = json['display_name'],
         fullExampleWithPlusSign = json['full_example_with_plus_sign'],
@@ -125,14 +130,16 @@ class Country {
     if (query.startsWith("+")) {
       _query = query.replaceAll("+", "").trim();
     }
-    return phoneCode.startsWith(_query.toLowerCase()) ||
-        name.toLowerCase().startsWith(_query.toLowerCase()) ||
-        countryCode.toLowerCase().startsWith(_query.toLowerCase()) ||
-        (localizations
-                ?.countryName(countryCode: countryCode)
-                ?.toLowerCase()
-                .startsWith(_query.toLowerCase()) ??
-            false);
+    if (phoneCode.startsWith(_query)) return true;
+
+    final upperQuery = _query.toUpperCase();
+    if (nameUppercase.startsWith(upperQuery) || countryCode.startsWith(upperQuery)) return true;
+
+    final localizedName = localizations?.countryName(countryCode: countryCode)?.toUpperCase();
+    if (localizedName == null) return false;
+    if (localizedName.startsWith(upperQuery)) return true;
+
+    return latinize(localizedName).startsWith(upperQuery);
   }
 
   bool get iswWorldWide => countryCode == Country.worldWide.countryCode;
